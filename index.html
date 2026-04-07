@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identity V Skin Selector - Database Version</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #d1fae5, #e0f2fe, #ede9fe);
+            min-height: 100vh;
+            font-family: 'Prompt', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .skin-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .skin-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: #06b6d4;
+        }
+        /* Custom Scrollbar สำหรับมือถือให้ดูละมุน */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.5); border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        <header class="glass p-6 rounded-[2.5rem] text-center shadow-lg">
+            <h1 class="text-2xl font-bold text-gray-800">Identity V Skin Library</h1>
+            <p class="text-gray-600 text-sm">ค้นหาชื่อตัวละครเพื่อเลือกสกิน</p>
+        </header>
+
+        <div class="glass p-6 rounded-[3rem] shadow-2xl flex flex-col md:flex-row gap-6">
+            
+            <div class="w-full md:w-1/3 space-y-4">
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="ค้นหาชื่อตัวละคร..." 
+                           class="w-full p-4 pl-12 rounded-[1.5rem] bg-white/40 border-none outline-none focus:ring-2 ring-cyan-400 shadow-inner">
+                    <span class="absolute left-4 top-4">🔍</span>
+                </div>
+                
+                <div class="p-4 rounded-2xl bg-white/20 text-sm text-gray-700">
+                    <p id="statusText">กำลังโหลดข้อมูลสกิน...</p>
+                </div>
+
+                <div class="glass p-4 rounded-2xl text-center border-dashed border-2 border-white/50">
+                    <p class="text-xs text-gray-600 mb-2">สนับสนุนการอัปเดตสกิน</p>
+                    <button onclick="alert('แสดง QR Code โดเนท')" class="w-full py-2 bg-white/60 rounded-xl hover:bg-white transition-all text-sm font-bold">
+                        ☕ เลี้ยงชานมน้อง Eoy
+                    </button>
+                </div>
+            </div>
+
+            <div class="w-full md:w-2/3 h-[500px] overflow-y-auto pr-2 custom-scroll">
+                <div id="skinGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7BKWYQRWWJSCvoT8gnPcTzU0HGylpQp-tgx7ioueEydu-C8FdLM7nwpKwa_fjAVlpWAGVSHGZuL2X/pub?output=csv';
+        let allSkins = [];
+
+        // ฟังก์ชันโหลดข้อมูลจาก CSV
+        async function loadSkins() {
+            try {
+                const response = await fetch(csvUrl);
+                const data = await response.text();
+                const rows = data.split('\n').slice(1); // ตัดหัวตารางออก
+                
+                allSkins = rows.map(row => {
+                    const cols = row.split(',');
+                    return {
+                        character: cols[0]?.trim(),
+                        name: cols[1]?.trim(),
+                        url: cols[2]?.trim()
+                    };
+                }).filter(s => s.character); // กรองแถวว่าง
+
+                document.getElementById('statusText').innerText = `โหลดเสร็จแล้ว! พบทั้งหมด ${allSkins.length} รายการ`;
+                renderSkins(allSkins);
+            } catch (error) {
+                document.getElementById('statusText').innerText = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+            }
+        }
+
+        // ฟังก์ชันแสดงผลสกินลงหน้าเว็บ
+        function renderSkins(skins) {
+            const grid = document.getElementById('skinGrid');
+            grid.innerHTML = '';
+            
+            skins.forEach(skin => {
+                const div = document.createElement('div');
+                div.className = 'skin-card glass rounded-[2rem] overflow-hidden cursor-pointer';
+                div.innerHTML = `
+                    <div class="aspect-square bg-gray-200">
+                        <img src="${skin.url}" class="w-full h-full object-cover" loading="lazy">
+                    </div>
+                    <div class="p-3 text-center">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">${skin.character}</p>
+                        <p class="text-xs text-gray-800 truncate">${skin.name}</p>
+                    </div>
+                `;
+                div.onclick = () => alert(`เลือกสกิน: ${skin.name} ของ ${skin.character}`);
+                grid.appendChild(div);
+            });
+        }
+
+        // ระบบค้นหา
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allSkins.filter(s => 
+                s.character.toLowerCase().includes(term) || 
+                s.name.toLowerCase().includes(term)
+            );
+            renderSkins(filtered);
+        });
+
+        loadSkins();
+    </script>
+</body>
+</html>
